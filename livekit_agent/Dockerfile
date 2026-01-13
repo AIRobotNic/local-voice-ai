@@ -44,7 +44,7 @@ RUN mkdir -p src
 # --locked ensures we use exact versions from uv.lock for reproducible builds
 # This creates a virtual environment and installs all dependencies
 # Ensure your uv.lock file is checked in for consistency across environments
-RUN uv sync --locked
+RUN uv sync
 
 # Copy all remaining application files into the container
 # This includes source code, configuration files, and dependency specifications
@@ -63,6 +63,13 @@ USER appuser
 # This ensures the container is ready to run immediately without downloading
 # dependencies at runtime, which improves startup time and reliability
 RUN uv run src/agent.py download-files
+
+ENV OTEL_SERVICE_NAME=johny-eng-buddy \
+    OTEL_DEPLOYMENT_ENVIRONMENT=Prod \
+    OTEL_EXPORTER_OTLP_ENDPOINT=http://okapi.nicolai.top:4318 \
+    OTEL_DETAILED_TRACING=True \
+    OTEL_COLLECT_GPU_STATS=True \
+    OTEL_COLLECT_SYSTEM_METRICS=True
 
 # Run the application using UV
 # UV will activate the virtual environment and run the agent.

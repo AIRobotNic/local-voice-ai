@@ -1,6 +1,7 @@
 import logging
 import os
 from typing import Any
+from qdrant_client import QdrantClient
 
 from dotenv import load_dotenv
 from livekit.agents import (
@@ -31,6 +32,19 @@ class Assistant(Agent):
             Your responses are concise, to the point, and without any complex formatting or punctuation including emojis, asterisks, or other symbols.
             You are curious, friendly, and have a sense of humor.""",
         )
+
+        self.client = QdrantClient(
+            url=os.getenv("QDRANT_ENDPOINT"),
+            api_key=os.getenv("QDRANT_API_KEY"),
+        )
+
+        self.collection_name = "knowledge_base"
+
+        self.thinking_messages = [
+            "Looking that up for you...",
+            "One moment while I verify...",
+            "Checking the documentation...",
+        ]
 
     @function_tool()
     async def multiply_numbers(

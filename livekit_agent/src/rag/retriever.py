@@ -1,5 +1,5 @@
 import random
-from livekit_agent.src.rag.client_qdrant import QdrantClient
+from .client_qdrant import get_client
 from qdrant_client.models import Filter, FieldCondition, MatchText
 
 class QdrantRetriever:

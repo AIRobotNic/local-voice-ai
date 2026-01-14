@@ -4,7 +4,8 @@ import random
 from typing import Any, List
 from rag.retriever import QdrantRetriever
 from dotenv import load_dotenv
-from qdrant_client import QdrantClient
+from rag.ingest import Ingestor
+from rag.retriever import QdrantRetriever
 from sentence_transformers import SentenceTransformer
 
 from livekit.agents import (

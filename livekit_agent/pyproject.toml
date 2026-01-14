@@ -15,7 +15,7 @@ dependencies = [
     "asyncio",
     "openlit",
     "openai>=1.0.0",
-    "qdrant-client",
+    "qdrant-client>=1.2.0",
     "sentence-transformers",
     "pypdf",
 

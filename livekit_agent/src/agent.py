@@ -3,7 +3,7 @@ import os
 import random
 from typing import Any
 from qdrant_client import QdrantClient
-
+from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 from livekit.agents import (
     Agent,
@@ -28,10 +28,7 @@ load_dotenv(".env.local")
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
-            instructions="""You are a helpful voice AI assistant. The user is interacting with you via voice, even if you perceive the conversation as text.
-            You eagerly assist users with their questions by providing information from your extensive knowledge.
-            Your responses are concise, to the point, and without any complex formatting or punctuation.
-            You are curious, friendly, and have a sense of humor.""",
+            instructions="""You are a helpful voice AI assistant...""",
         )
 
         self.client = QdrantClient(
@@ -40,6 +37,8 @@ class Assistant(Agent):
         )
 
         self.collection_name = "knowledge_base"
+
+        self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
         self.thinking_messages = [
             "Looking that up for you...",
@@ -50,14 +49,8 @@ class Assistant(Agent):
     def get_thinking_message(self) -> str:
         return random.choice(self.thinking_messages)
 
-    @function_tool()
-    async def multiply_numbers(
-        self,
-        context: RunContext,
-        number1: int,
-        number2: int,
-    ) -> str:
-        return f"The product of {number1} and {number2} is {number1 * number2}."
+    def embed(self, text: str):
+        return self.embedder.encode(text).tolist()
 
     @function_tool()
     async def search_knowledge_base(
@@ -66,29 +59,22 @@ class Assistant(Agent):
         query: str,
         limit: int = 3,
     ) -> str:
-        """
-        Search the knowledge base for relevant information.
-
-        Args:
-            query: What to search for
-            limit: Number of results
-        """
-
         thinking = self.get_thinking_message()
 
         try:
-            results = self.client.query_points(
+            vector = self.embed(query)
+
+            results = self.client.search(
                 collection_name=self.collection_name,
-                prefetch=[],
-                query=query,
+                query_vector=vector,
                 limit=limit,
             )
 
-            if not results or not results.points:
+            if not results:
                 return f"{thinking} I couldn’t find anything relevant."
 
             texts = []
-            for point in results.points:
+            for point in results:
                 payload = point.payload or {}
                 text = payload.get("text") or payload.get("content")
                 if text:

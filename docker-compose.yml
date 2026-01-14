@@ -91,7 +91,12 @@ services:
   livekit_agent:
     build:
       context: ./livekit_agent
-    container_name: livekit_agent
+    container_name: livekit_agent  deploy:
+    resources:
+      limits:
+        memory: 1.5g
+      reservations:
+        memory: 1g
     env_file:
       - .env
     environment:

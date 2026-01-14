@@ -1,47 +1,55 @@
-import random
-from .client_qdrant import get_client
-from qdrant_client.models import Filter, FieldCondition, MatchText
+import os
+from typing import List
+
+from dotenv import load_dotenv
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams
+
+from .embedder import Embedder
+
 
 class QdrantRetriever:
-    def __init__(self, collection_name: str = "knowledge_base"):
-        from dotenv import load_dotenv
-        import os
+    """Simple semantic retriever over a Qdrant collection."""
 
+    def __init__(self, collection_name: str = "knowledge_base") -> None:
         load_dotenv(".env.local")
         self.client = QdrantClient(
             url=os.getenv("QDRANT_ENDPOINT", "http://localhost:6333"),
             api_key=os.getenv("QDRANT_API_KEY"),
         )
         self.collection_name = collection_name
-        self.thinking_messages = [
-            "Сейчас посмотрю...",
-            "Подождите минутку, проверяю...",
-            "Ищу информацию в базе...",
-        ]
+        self.embedder = Embedder()
 
-    def get_thinking_message(self) -> str:
-        return random.choice(self.thinking_messages)
+        # Ensure the collection exists with the correct vector size
+        self._ensure_collection()
 
-    def search(self, query: str, limit: int = 3) -> str:
-        thinking = self.get_thinking_message()
+    def _ensure_collection(self) -> None:
+        """Create the collection if it doesn't exist yet."""
+        collections = self.client.get_collections()
+        if any(c.name == self.collection_name for c in collections.collections):
+            return
 
-        try:
-            points, _ = self.client.scroll(
-                collection_name=self.collection_name,
-                scroll_filter=Filter(
-                    must=[FieldCondition(key="text", match=MatchText(text=query))]
-                ),
-                limit=limit
-            )
-        except Exception as e:
-            return f"{thinking} Произошла ошибка при поиске: {e}"
+        # all-MiniLM-L6-v2 outputs 384-dim vectors
+        self.client.recreate_collection(
+            collection_name=self.collection_name,
+            vectors_config=VectorParams(size=384, distance=Distance.COSINE),
+        )
 
-        if not points or len(points) == 0:
-            return f"{thinking} Ничего не найдено."
+    def search(self, query: str, limit: int = 3) -> List[str]:
+        """Return the most relevant text chunks for a query."""
+        vector = self.embedder.encode(query)
 
-        texts = [p.payload.get("text") for p in points if p.payload.get("text")]
-        if not texts:
-            return f"{thinking} Нашел результаты, но нет текста."
+        results = self.client.search(
+            collection_name=self.collection_name,
+            query_vector=vector,
+            limit=limit,
+        )
 
-        combined = "\n\n".join(texts)
-        return f"{thinking}\nВот что я нашел:\n{combined}"
+        texts: List[str] = []
+        for r in results:
+            payload = r.payload or {}
+            text = payload.get("text")
+            if isinstance(text, str):
+                texts.append(text)
+
+        return texts

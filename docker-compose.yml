@@ -1,6 +1,6 @@
 services:  
   qdrant-init:
-    image: ${COMPOSE_PROJECT_NAME}_livekit_agent:latest
+    image: ${COMPOSE_PROJECT_NAME}-livekit_agent:latest
     container_name: qdrant-init
     command: ["uv", "run", "python", "-m", "src.scripts.create_collection"]
     depends_on:

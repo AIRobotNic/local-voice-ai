@@ -1,5 +1,6 @@
 import logging
 import os
+import random
 from typing import Any
 from qdrant_client import QdrantClient
 
@@ -29,12 +30,12 @@ class Assistant(Agent):
         super().__init__(
             instructions="""You are a helpful voice AI assistant. The user is interacting with you via voice, even if you perceive the conversation as text.
             You eagerly assist users with their questions by providing information from your extensive knowledge.
-            Your responses are concise, to the point, and without any complex formatting or punctuation including emojis, asterisks, or other symbols.
+            Your responses are concise, to the point, and without any complex formatting or punctuation.
             You are curious, friendly, and have a sense of humor.""",
         )
 
         self.client = QdrantClient(
-            url=os.getenv("QDRANT_ENDPOINT"),
+            url=os.getenv("QDRANT_ENDPOINT", "http://localhost:6333"),
             api_key=os.getenv("QDRANT_API_KEY"),
         )
 
@@ -46,21 +47,62 @@ class Assistant(Agent):
             "Checking the documentation...",
         ]
 
+    def get_thinking_message(self) -> str:
+        return random.choice(self.thinking_messages)
+
     @function_tool()
     async def multiply_numbers(
         self,
         context: RunContext,
         number1: int,
         number2: int,
-    ) -> dict[str, Any]:
-        """Multiply two numbers.
-        
+    ) -> str:
+        return f"The product of {number1} and {number2} is {number1 * number2}."
+
+    @function_tool()
+    async def search_knowledge_base(
+        self,
+        context: RunContext,
+        query: str,
+        limit: int = 3,
+    ) -> str:
+        """
+        Search the knowledge base for relevant information.
+
         Args:
-            number1: The first number to multiply.
-            number2: The second number to multiply.
+            query: What to search for
+            limit: Number of results
         """
 
-        return f"The product of {number1} and {number2} is {number1 * number2}."
+        thinking = self.get_thinking_message()
+
+        try:
+            results = self.client.query_points(
+                collection_name=self.collection_name,
+                prefetch=[],
+                query=query,
+                limit=limit,
+            )
+
+            if not results or not results.points:
+                return f"{thinking} I couldn’t find anything relevant."
+
+            texts = []
+            for point in results.points:
+                payload = point.payload or {}
+                text = payload.get("text") or payload.get("content")
+                if text:
+                    texts.append(text)
+
+            if not texts:
+                return f"{thinking} I found results, but no readable content."
+
+            combined = "\n\n".join(texts)
+            return f"{thinking}\nHere’s what I found:\n{combined}"
+
+        except Exception as e:
+            logger.exception("Qdrant search failed")
+            return f"I ran into an error while searching: {str(e)}"
 
 server = AgentServer()
 

@@ -1,10 +1,12 @@
 import logging
 import os
 import random
-from typing import Any
+from typing import Any, List
+from rag.retriever import QdrantRetriever
+from dotenv import load_dotenv
 from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer
-from dotenv import load_dotenv
+
 from livekit.agents import (
     Agent,
     AgentServer,
@@ -22,35 +24,81 @@ import openlit
 openlit.init()
 
 logger = logging.getLogger("agent")
-
 load_dotenv(".env.local")
 
-class Assistant(Agent):
-    def __init__(self) -> None:
-        super().__init__(
-            instructions="""You are a helpful voice AI assistant...""",
-        )
+# -------------------- RAG COMPONENTS --------------------
 
+class Embedder:
+    def __init__(self):
+        self.model = SentenceTransformer("all-MiniLM-L6-v2")
+
+    def encode(self, text: str) -> List[float]:
+        return self.model.encode(text).tolist()
+
+
+class Retriever:
+    def __init__(self, collection_name="knowledge_base"):
         self.client = QdrantClient(
             url=os.getenv("QDRANT_ENDPOINT", "http://localhost:6333"),
             api_key=os.getenv("QDRANT_API_KEY"),
         )
+        self.embedder = Embedder()
+        self.collection_name = collection_name
 
+    def search(self, query: str, limit=3) -> List[str]:
+        vector = self.embedder.encode(query)
+
+        results = self.client.search(
+            collection_name=self.collection_name,
+            query_vector=vector,
+            limit=limit,
+        )
+
+        texts = []
+        for r in results:
+            payload = r.payload or {}
+            if "text" in payload:
+                texts.append(payload["text"])
+
+        return texts
+
+# -------------------- AGENT --------------------
+
+class Assistant(Agent):
+    def __init__(self) -> None:
+        super().__init__(
+            instructions="""You are a helpful voice AI assistant.
+You answer using the provided context when available.
+If you don't know something, you say so honestly.
+Your answers are concise, natural, and friendly.""",
+        )
+
+        # Подключаем RAG
+        self.retriever = QdrantRetriever()
         self.collection_name = "knowledge_base"
 
-        self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
+        @function_tool()
+        async def search_knowledge_base(self, context: RunContext, query: str) -> str:
+            """Ищет информацию в базе знаний"""
+            return self.retriever.search(query)
 
         self.thinking_messages = [
             "Looking that up for you...",
-            "One moment while I verify...",
-            "Checking the documentation...",
+            "One moment while I check...",
+            "Searching my knowledge...",
         ]
 
     def get_thinking_message(self) -> str:
         return random.choice(self.thinking_messages)
 
-    def embed(self, text: str):
-        return self.embedder.encode(text).tolist()
+    @function_tool()
+    async def multiply_numbers(
+        self,
+        context: RunContext,
+        number1: int,
+        number2: int,
+    ) -> str:
+        return f"The product of {number1} and {number2} is {number1 * number2}."
 
     @function_tool()
     async def search_knowledge_base(
@@ -59,36 +107,35 @@ class Assistant(Agent):
         query: str,
         limit: int = 3,
     ) -> str:
+        """
+        Search the knowledge base using semantic search.
+
+        Args:
+            query: What to search for
+            limit: Number of results
+        """
+
         thinking = self.get_thinking_message()
 
         try:
-            vector = self.embed(query)
-
-            results = self.client.search(
-                collection_name=self.collection_name,
-                query_vector=vector,
-                limit=limit,
-            )
+            results = self.retriever.search(query, limit=limit)
 
             if not results:
-                return f"{thinking} I couldn’t find anything relevant."
+                return f"{thinking} I couldn't find anything relevant."
 
-            texts = []
-            for point in results:
-                payload = point.payload or {}
-                text = payload.get("text") or payload.get("content")
-                if text:
-                    texts.append(text)
+            context_block = "\n\n".join(results)
 
-            if not texts:
-                return f"{thinking} I found results, but no readable content."
-
-            combined = "\n\n".join(texts)
-            return f"{thinking}\nHere’s what I found:\n{combined}"
+            return (
+                f"{thinking}\n\n"
+                f"Here is the relevant context:\n"
+                f"{context_block}"
+            )
 
         except Exception as e:
             logger.exception("Qdrant search failed")
             return f"I ran into an error while searching: {str(e)}"
+
+# -------------------- SERVER --------------------
 
 server = AgentServer()
 
@@ -109,19 +156,16 @@ async def my_agent(ctx: JobContext):
     session = AgentSession(
         stt=openai.STT(
             base_url="http://whisper:80/v1",
-            # base_url="http://localhost:11435/v1", # uncomment for local testing
             model="Systran/faster-whisper-small",
             api_key="no-key-needed"
         ),
         llm=openai.LLM(
             base_url=llama_base_url,
-            # base_url="http://localhost:11436/v1", # uncomment for local testing
             model=llama_model,
             api_key="no-key-needed"
         ),
         tts=openai.TTS(
             base_url="http://kokoro:8880/v1",
-            # base_url="http://localhost:8880/v1", # uncomment for local testing
             model="kokoro",
             voice="af_nova",
             api_key="no-key-needed"

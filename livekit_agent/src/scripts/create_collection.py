@@ -1,17 +1,44 @@
-import os
+import time
 
-from dotenv import load_dotenv
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams
+from qdrant_client.http.models import VectorParams, Distance
 
-load_dotenv(".env.local")
+QDRANT_URL = "http://qdrant:6333"
+COLLECTION_NAME = "knowledge_base"
+VECTOR_SIZE = 384
 
-client = QdrantClient(url=os.getenv("QDRANT_ENDPOINT", "http://localhost:6333"))
 
-client.recreate_collection(
-    collection_name="knowledge_base",
-    vectors_config=VectorParams(size=384, distance=Distance.COSINE),
-)
+def wait_for_qdrant(client: QdrantClient, retries: int = 30, delay: float = 1.0) -> None:
+    for i in range(retries):
+        try:
+            client.get_collections()
+            return
+        except Exception:
+            print(f"Waiting for Qdrant... ({i + 1}/{retries})")
+            time.sleep(delay)
+    raise RuntimeError("Qdrant is not available")
 
-print("Collection created")
 
+def main() -> None:
+    client = QdrantClient(url=QDRANT_URL)
+
+    # 1. Ждём готовности Qdrant
+    wait_for_qdrant(client)
+
+    # 2. Создаём коллекцию ТОЛЬКО если её нет
+    if not client.collection_exists(COLLECTION_NAME):
+        print(f"Creating collection '{COLLECTION_NAME}'")
+
+        client.create_collection(
+            collection_name=COLLECTION_NAME,
+            vectors_config=VectorParams(
+                size=VECTOR_SIZE,
+                distance=Distance.COSINE,
+            ),
+        )
+    else:
+        print(f"Collection '{COLLECTION_NAME}' already exists")
+
+
+if __name__ == "__main__":
+    main()

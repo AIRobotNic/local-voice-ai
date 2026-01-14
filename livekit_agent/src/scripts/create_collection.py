@@ -3,8 +3,12 @@ import time
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import VectorParams, Distance
 
-QDRANT_URL = "http://qdrant:6333"
-COLLECTION_NAME = "knowledge_base"
+import os
+from dotenv import load_dotenv
+
+load_dotenv(".env.local")
+QDRANT_URL = os.getenv("QDRANT_ENDPOINT", "http://localhost:6333")
+COLLECTION_NAME = os.getenv("QDRANT_COLLECTION", "knowledge_base")
 VECTOR_SIZE = 384
 
 

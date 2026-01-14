@@ -1,5 +1,5 @@
 import os
-from qdrant_client import QdrantClient
+from livekit_agent.src.rag.client_qdrant import QdrantClient
 from .embedder import Embedder
 from .chunker import chunk_text
 from pypdf import PdfReader

@@ -1,4 +1,14 @@
-services: 
+services:  
+  qdrant-init:
+    image: ${COMPOSE_PROJECT_NAME}-livekit_agent:latest
+    container_name: qdrant-init
+    command: ["uv", "run", "python", "-m", "src.scripts.create_collection"]
+    depends_on:
+      - qdrant
+    restart: "no"
+    networks:
+    - agent_network
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant
@@ -18,6 +28,7 @@ services:
   kokoro:
     build:
       context: ./inference/kokoro
+    container_name: kokoro
     ports:
       - "8880:8880"
     networks:
@@ -25,6 +36,7 @@ services:
 
   livekit:
     image: livekit/livekit-server:latest
+    container_name: livekit
     ports:
       - "7880:7880"
       - "7881:7881"
@@ -35,6 +47,7 @@ services:
   whisper:
     build:
       context: ./inference/whisper
+    container_name: whisper
     volumes:
       - whisper-data:/data
     environment:
@@ -48,6 +61,7 @@ services:
 
   llama_cpp:
     image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: llama_cpp
     command:
       - --host
       - 0.0.0.0
@@ -77,6 +91,13 @@ services:
   livekit_agent:
     build:
       context: ./livekit_agent
+    container_name: livekit_agent
+    deploy:
+      resources:
+        limits:
+          memory: 1.5g
+        reservations:
+          memory: 1g
     env_file:
       - .env
     environment:
@@ -100,6 +121,9 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_healthy
+      qdrant-init:
+        condition: service_completed_successfully
+
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8081/ > /dev/null"]
       interval: 5s
@@ -112,6 +136,7 @@ services:
   frontend:
     build:
       context: ./frontend
+    container_name: frontend
     ports:
       - "${LIVEKIT_AGENT_HOST_PORT:-3000}:3000"
     environment:

@@ -64,7 +64,7 @@ USER appuser
 # dependencies at runtime, which improves startup time and reliability
 
 # TODO fix it 
-# RUN uv run src/agent.py download-files
+RUN uv run src/agent.py download-files
 
 ENV OTEL_SERVICE_NAME=johny-eng-buddy \
     OTEL_DEPLOYMENT_ENVIRONMENT=Prod \

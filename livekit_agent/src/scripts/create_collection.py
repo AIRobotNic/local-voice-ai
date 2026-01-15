@@ -7,7 +7,11 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv(".env.local")
+<<<<<<< Updated upstream
 QDRANT_URL = os.getenv("QDRANT_ENDPOINT", "http://localhost:6333")
+=======
+QDRANT_URL = os.getenv("QDRANT_ENDPOINT", "http://qdrant:6333")
+>>>>>>> Stashed changes
 COLLECTION_NAME = os.getenv("QDRANT_COLLECTION", "knowledge_base")
 VECTOR_SIZE = 384
 

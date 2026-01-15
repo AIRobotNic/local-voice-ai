@@ -12,7 +12,7 @@ COLLECTION_NAME = os.getenv("QDRANT_COLLECTION", "knowledge_base")
 VECTOR_SIZE = 384
 
 
-def wait_for_qdrant(client: QdrantClient, retries: int = 30, delay: float = 1.0) -> None:
+def wait_for_qdrant(client: QdrantClient, retries: int = 60, delay: float = 2.0) -> None:
     for i in range(retries):
         try:
             client.get_collections()

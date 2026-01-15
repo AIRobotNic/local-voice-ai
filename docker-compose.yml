@@ -19,8 +19,8 @@ services:
   whisper:
     build:
       context: ./inference/whisper 
-    args:
-      WHISPER_BASE: ${WHISPER_BASE:-nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04}
+      args:
+        WHISPER_BASE: ${WHISPER_BASE:-nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04}
     gpus: all
     volumes:
       - whisper-data:/data

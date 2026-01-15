@@ -62,7 +62,9 @@ USER appuser
 # Pre-download any ML models or files the agent needs
 # This ensures the container is ready to run immediately without downloading
 # dependencies at runtime, which improves startup time and reliability
-RUN uv run src/agent.py download-files
+
+# TODO fix it 
+# RUN uv run src/agent.py download-files
 
 ENV OTEL_SERVICE_NAME=johny-eng-buddy \
     OTEL_DEPLOYMENT_ENVIRONMENT=Prod \

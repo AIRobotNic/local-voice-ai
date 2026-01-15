@@ -46,3 +46,27 @@ test/
 tests/
 eval/
 evals/
+# Data & models
+data/
+models/
+*.bin
+*.gguf
+*.onnx
+
+# Qdrant local storage (если есть)
+.qdrant/
+qdrant_data/
+
+# Node / frontend (если не нужно в agent)
+node_modules/
+
+# Audio / temp
+*.wav
+*.mp3
+*.ogg
+
+# Large stuff
+*.zip
+*.tar
+*.tar.gz
+

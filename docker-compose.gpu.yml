@@ -1,6 +1,0 @@
-services:
-  llama_cpp:
-    image: ghcr.io/ggml-org/llama.cpp:server-cuda
-    gpus: all
-    environment:
-      - LLAMA_ARG_N_GPU_LAYERS=${LLAMA_N_GPU_LAYERS:-35}

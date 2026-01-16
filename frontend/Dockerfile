@@ -1,6 +1,7 @@
 FROM node:20-slim AS base
 WORKDIR /app
 
+ARG NEXT_PUBLIC_LIVEKIT_URL
 RUN echo ${NEXT_PUBLIC_LIVEKIT_URL}
 FROM base AS deps
 RUN corepack enable
@@ -15,6 +16,7 @@ ENV LIVEKIT_URL=http://livekit:7880 \
     LIVEKIT_API_KEY=devkey \
     LIVEKIT_API_SECRET=secret
 ENV NEXT_PUBLIC_LIVEKIT_URL=${NEXT_PUBLIC_LIVEKIT_URL:-ws://localhost:7880}
+RUN echo $NEXT_PUBLIC_LIVEKIT_URL
 RUN pnpm run build
 
 FROM base AS runner

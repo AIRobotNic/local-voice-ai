@@ -2,10 +2,18 @@ services:
   kokoro:
     build:
       context: ./inference/kokoro
+      args:
+        KOKORO_IMAGE: ${KOKORO_IMAGE:-ghcr.io/remsky/kokoro-fastapi-gpu:latest}
     ports:
       - "8880:8880"
     networks:
       - agent_network
+
+
+
+
+
+
 
   livekit:
     image: livekit/livekit-server:latest

@@ -1,9 +1,4 @@
 services:
-  kokoro:
-    build:
-      args:
-        KOKORO_IMAGE: ${KOKORO_IMAGE:-ghcr.io/remsky/kokoro-fastapi-gpu:latest}
-
   llama_cpp:
     image: ghcr.io/ggml-org/llama.cpp:server-cuda
     gpus: all

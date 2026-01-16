@@ -16,8 +16,8 @@ from livekit.agents import (
 from livekit.plugins import silero, openai
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
-import openlit
-openlit.init()
+# import openlit
+# openlit.init()
 
 logger = logging.getLogger("agent")
 

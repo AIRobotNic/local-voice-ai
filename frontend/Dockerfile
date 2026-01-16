@@ -1,6 +1,7 @@
 FROM node:20-slim AS base
 WORKDIR /app
 
+RUN echo ${NEXT_PUBLIC_LIVEKIT_URL}
 FROM base AS deps
 RUN corepack enable
 COPY package.json pnpm-lock.yaml ./

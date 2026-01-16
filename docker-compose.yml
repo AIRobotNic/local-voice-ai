@@ -95,6 +95,8 @@ services:
   frontend:
     build:
       context: ./frontend
+    env_file:
+      - .env
     ports:
       - "${LIVEKIT_AGENT_HOST_PORT:-3000}:3000"
     environment:

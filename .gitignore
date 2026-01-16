@@ -14,7 +14,6 @@ yarn.lock
 package-lock.json
 __pycache__/
 *.pyc
-frontend/.env*
 frontend/node_modules/
 frontend/dist/
 frontend/.next/

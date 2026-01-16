@@ -13,7 +13,7 @@ COPY . .
 ENV LIVEKIT_URL=http://livekit:7880 \
     LIVEKIT_API_KEY=devkey \
     LIVEKIT_API_SECRET=secret
-# ENV NEXT_PUBLIC_LIVEKIT_URL=http://localhost:7880
+NEXT_PUBLIC_LIVEKIT_URL=${NEXT_PUBLIC_LIVEKIT_URL:-ws://localhost:7880}
 RUN pnpm run build
 
 FROM base AS runner
@@ -21,7 +21,7 @@ ENV NODE_ENV=production
 ENV LIVEKIT_URL=http://livekit:7880 \
     LIVEKIT_API_KEY=devkey \
     LIVEKIT_API_SECRET=secret
-# ENV NEXT_PUBLIC_LIVEKIT_URL=http://localhost:7880
+NEXT_PUBLIC_LIVEKIT_URL=${NEXT_PUBLIC_LIVEKIT_URL:-ws://localhost:7880}
 COPY --from=build /app ./
 EXPOSE 3000
 CMD ["node", "node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3000"]

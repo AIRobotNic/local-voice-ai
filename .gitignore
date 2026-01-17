@@ -1,24 +1,59 @@
-venv/
-inference/llama/models/
-.env*
-node_modules/
-dist/
-.next/
-out/
+# Python
+venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Node / Next
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+out
+
+# Env files
+# .env
+#.env.*
+# !.env.example
+
+# OS trash
 .DS_Store
 Thumbs.db
-tests/
-docs/
+
+# Logs
+*.log
+
+# Git
+.git
+.gitignore
+
+# Tests & docs
+tests
+docs
+**/tests
+**/docs
+
+# Lock files (не нужны в runtime-образе)
 pnpm-lock.yaml
 yarn.lock
 package-lock.json
-__pycache__/
-*.pyc
-frontend/node_modules/
-frontend/dist/
-frontend/.next/
-frontend/out/
-frontend/.DS_Store
-frontend/Thumbs.db
-frontend/tests/
-frontend/docs/
+
+# AI / Models (ВАЖНО)
+inference/llama/models
+**/models
+*.bin
+*.safetensors
+*.pt
+*.onnx
+
+# Cache
+.cache
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker stuff
+docker-compose.override.yml

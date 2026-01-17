@@ -3,8 +3,10 @@ services:
     container_name: kokoro
     build:
       context: ./inference/kokoro
-      cache_from: [type=local,src=./.cache/kokoro]
-      cache_to: [type=local,dest=./.cache/kokoro,mode=max]
+      cache_from: 
+        - type=local,src=./.cache/kokoro
+      cache_to:
+        - type=local,dest=./.cache/kokoro,mode=max
       args:
         KOKORO_IMAGE: ${KOKORO_IMAGE:-ghcr.io/remsky/kokoro-fastapi-gpu:latest}
     ports:
@@ -26,8 +28,10 @@ services:
     container_name: whisper
     build:
       context: ./inference/whisper
-      cache_from: [type=local,src=./.cache/whisper]
-      cache_to: [type=local,dest=./.cache/whisper,mode=max]
+      cache_from:
+        - type=local,src=./.cache/whisper
+      cache_to:
+        - type=local,dest=./.cache/whisper,mode=max
       args:
         WHISPER_BASE: ${WHISPER_BASE:-nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04}
     gpus: all
@@ -109,8 +113,10 @@ services:
     container_name: frontend
     build:
       context: ./frontend
-      cache_from: [type=local,src=./.cache/frontend]
-      cache_to: [type=local,dest=./.cache/frontend,mode=max]
+      cache_from:
+        - type=local,src=./.cache/frontend
+      cache_to:
+        - type=local,dest=./.cache/frontend,mode=max
       args:
         NEXT_PUBLIC_LIVEKIT_URL: ${NEXT_PUBLIC_LIVEKIT_URL:-ws://localhost:7880}
     env_file:

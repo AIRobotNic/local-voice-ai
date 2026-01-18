@@ -25,8 +25,6 @@ services:
         - type=local,src=./.cache/whisper
       cache_to:
         - type=local,dest=./.cache/whisper,mode=max
-      args:
-        WHISPER_BASE: ${WHISPER_BASE:-nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04}
     gpus: all
     volumes:
       - whisper-data:/data

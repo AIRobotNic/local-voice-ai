@@ -1,5 +1,5 @@
-# syntax=docker/dockerfile:1.5
-ARG WHISPER_BASE=python:3.10-slim
+ARG WHISPER_BASE=${WHISPER_BASE:-nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04}
+
 FROM ${WHISPER_BASE}
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
@@ -25,4 +25,4 @@ WORKDIR /app
 
 ENV DATA_DIR=/data
 
-CMD ["sh", "-c", "vox-box start --huggingface-repo-id ${VOXBOX_HF_REPO_ID:-Systran/faster-whisper-small} --data-dir ${DATA_DIR} --device ${VOXBOX_DEVICE:-cpu}"]
+CMD ["sh", "-c", "vox-box start --huggingface-repo-id ${VOXBOX_HF_REPO_ID:-Systran/faster-whisper-small} --data-dir ${DATA_DIR} --device ${VOXBOX_DEVICE:-cuda:0}"]

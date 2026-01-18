@@ -1,14 +1,7 @@
 services:
   kokoro:
     container_name: kokoro
-    build:
-      context: ./inference/kokoro
-      cache_from: 
-        - type=local,src=./.cache/kokoro
-      cache_to:
-        - type=local,dest=./.cache/kokoro,mode=max
-      args:
-        KOKORO_IMAGE: ${KOKORO_IMAGE:-ghcr.io/remsky/kokoro-fastapi-gpu:latest}
+    image: ${KOKORO_IMAGE:-ghcr.io/remsky/kokoro-fastapi-gpu:latest}
     ports:
       - "8880:8880"
     networks:

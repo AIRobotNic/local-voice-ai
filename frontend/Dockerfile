@@ -1,30 +1,33 @@
 FROM node:20-slim AS base
 WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-ARG NEXT_PUBLIC_LIVEKIT_URL
-RUN echo ${NEXT_PUBLIC_LIVEKIT_URL}
+# --- Слой зависимостей ---
 FROM base AS deps
-RUN corepack enable
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+# Используем кеш-директорию для pnpm, чтобы не качать пакеты заново
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
+# --- Слой сборки ---
 FROM base AS build
-RUN corepack enable
+ARG NEXT_PUBLIC_LIVEKIT_URL
+ENV NEXT_PUBLIC_LIVEKIT_URL=${NEXT_PUBLIC_LIVEKIT_URL:-ws://localhost:7880}
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-ENV LIVEKIT_URL=http://livekit:7880 \
-    LIVEKIT_API_KEY=devkey \
-    LIVEKIT_API_SECRET=secret
-ENV NEXT_PUBLIC_LIVEKIT_URL=${NEXT_PUBLIC_LIVEKIT_URL:-ws://localhost:7880}
-RUN echo $NEXT_PUBLIC_LIVEKIT_URL
-RUN pnpm run build
+# Кешируем папку .next/cache для ускорения инкрементальной сборки Next.js
+RUN --mount=type=cache,target=/app/.next/cache \
+    pnpm run build
 
+# --- Финальный слой (Runner) ---
 FROM base AS runner
 ENV NODE_ENV=production
-ENV LIVEKIT_URL=http://livekit:7880 \
-    LIVEKIT_API_KEY=devkey \
-    LIVEKIT_API_SECRET=secret
-ENV NEXT_PUBLIC_LIVEKIT_URL=${NEXT_PUBLIC_LIVEKIT_URL:-ws://localhost:7880}
-COPY --from=build /app ./
+# Копируем только необходимые файлы для запуска, чтобы образ был легким
+COPY --from=build /app/public ./public
+COPY --from=build /app/.next ./.next
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./package.json
+
 EXPOSE 3000
-CMD ["node", "node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3000"]
+CMD ["node", "node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", 

@@ -104,10 +104,11 @@ services:
     container_name: frontend
     build:
       context: ./frontend
+      dockerfile: Dockerfile 
       cache_from:
         - type=local,src=./.cache/frontend
       cache_to:
-        - type=local,dest=./.cache/frontend,mode=max
+        - type=local,dest=./.cache/frontend,mode=max,compression=uncompressed
       args:
         NEXT_PUBLIC_LIVEKIT_URL: ${NEXT_PUBLIC_LIVEKIT_URL:-ws://localhost:7880}
     env_file:
@@ -116,9 +117,9 @@ services:
       - "${LIVEKIT_AGENT_HOST_PORT:-3000}:3000"
     environment:
       - NEXT_PUBLIC_LIVEKIT_URL=${NEXT_PUBLIC_LIVEKIT_URL:-ws://localhost:7880}
-      - LIVEKIT_URL=ws://livekit:7880
-      - LIVEKIT_API_KEY=devkey
-      - LIVEKIT_API_SECRET=secret
+      - LIVEKIT_URL=${LIVEKIT_URL:-ws://livekit:7880}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-secret}
     depends_on:
       livekit:
         condition: service_started

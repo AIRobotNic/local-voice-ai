@@ -1,3 +1,6 @@
+# syntax=docker/dockerfile:1
+# Вышеуказанная строка обязательна для работы кеширования!
+
 ARG WHISPER_BASE=${WHISPER_BASE:-nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04}
 
 FROM ${WHISPER_BASE}

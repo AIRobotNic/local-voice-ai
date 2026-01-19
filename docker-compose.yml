@@ -24,8 +24,15 @@ services:
       cache_from:
         - type=local,src=./.cache/whisper
       cache_to:
-        - type=local,dest=./.cache/whisper,mode=max
-    gpus: all
+        - type=local,dest=./.cache/whisper,mode=max,compression=uncompressed
+    # Правильный проброс GPU для Docker Compose V2 (2026)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     volumes:
       - whisper-data:/data
     environment:
@@ -33,9 +40,10 @@ services:
       - VOXBOX_DEVICE=${VOXBOX_DEVICE:-cuda:0}
       - DATA_DIR=/data
     ports:
-      - "11435:80"
+      - "11435:8000" # Проверьте порт! Если внутри 80, оставьте 11435:80
     networks:
       - agent_network
+    restart: unless-stopped
 
   llama_cpp:
     container_name: llama_cpp

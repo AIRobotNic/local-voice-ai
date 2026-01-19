@@ -153,11 +153,20 @@ services:
     networks:
       - agent_network
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:gpu-nvidia-latest
     container_name: qdrant
     ports:
       - "6333:6333"
       - "6334:6334"
+    environment:
+      - QDRANT__GPU__INDEXING=1
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:

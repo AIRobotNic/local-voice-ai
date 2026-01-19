@@ -2,6 +2,13 @@ services:
   kokoro:
     container_name: kokoro
     image: ${KOKORO_IMAGE:-ghcr.io/remsky/kokoro-fastapi-gpu:latest}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     ports:
       - "8880:8880"
     networks:
@@ -48,7 +55,13 @@ services:
   llama_cpp:
     container_name: llama_cpp
     image: ghcr.io/ggml-org/llama.cpp:server-cuda
-    gpus: all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     command:
       - --host
       - 0.0.0.0
@@ -90,6 +103,13 @@ services:
       - LIVEKIT_AGENT_PORT=${LIVEKIT_AGENT_PORT:-7880}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-no-key-needed}
       - GROQ_API_KEY=${GROQ_API_KEY:-no-key-needed}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     depends_on:
       livekit:
         condition: service_started

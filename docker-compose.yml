@@ -29,10 +29,9 @@ services:
     build:
       context: ./inference/whisper
       cache_from:
-        - type=local,src=./.cache/whisper
+        - type=local,src=/var/lib/docker-build-cache/whisper
       cache_to:
-        - type=local,dest=./.cache/whisper,mode=max,compression=uncompressed
-    # Правильный проброс GPU для Docker Compose V2 (2026)
+        - type=local,dest=/var/lib/docker-build-cache/whisper,mode=max,compression=uncompressed
     deploy:
       resources:
         reservations:
@@ -47,7 +46,7 @@ services:
       - VOXBOX_DEVICE=${VOXBOX_DEVICE:-cuda:0}
       - DATA_DIR=/data
     ports:
-      - "11435:8000" # Проверьте порт! Если внутри 80, оставьте 11435:80
+      - "11435:80" 
     networks:
       - agent_network
     restart: unless-stopped
@@ -134,9 +133,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile 
       cache_from:
-        - type=local,src=./.cache/frontend
+        - type=local,src=/var/lib/docker-build-cache/frontend
       cache_to:
-        - type=local,dest=./.cache/frontend,mode=max,compression=uncompressed
+        - type=local,dest=/var/lib/docker-build-cache/frontend,mode=max,compression=uncompressed
       args:
         NEXT_PUBLIC_LIVEKIT_URL: ${NEXT_PUBLIC_LIVEKIT_URL:-ws://localhost:7880}
     env_file:

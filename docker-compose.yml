@@ -1,13 +1,21 @@
 services:
   kokoro:
-    build:
-      context: ./inference/kokoro
+    container_name: kokoro
+    image: ${KOKORO_IMAGE:-ghcr.io/remsky/kokoro-fastapi-gpu:latest}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     ports:
       - "8880:8880"
     networks:
       - agent_network
 
   livekit:
+    container_name: livekit
     image: livekit/livekit-server:latest
     ports:
       - "7880:7880"
@@ -17,21 +25,42 @@ services:
       - agent_network
 
   whisper:
+    container_name: whisper
     build:
       context: ./inference/whisper
+      cache_from:
+        - type=local,src=/var/lib/docker-build-cache/whisper
+      cache_to:
+        - type=local,dest=/var/lib/docker-build-cache/whisper,mode=max,compression=uncompressed
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     volumes:
       - whisper-data:/data
     environment:
       - VOXBOX_HF_REPO_ID=${VOXBOX_HF_REPO_ID:-Systran/faster-whisper-small}
-      - VOXBOX_DEVICE=${VOXBOX_DEVICE:-cpu}
+      - VOXBOX_DEVICE=${VOXBOX_DEVICE:-cuda:0}
       - DATA_DIR=/data
     ports:
-      - "11435:80"
+      - "11435:80" 
     networks:
       - agent_network
+    restart: unless-stopped
 
   llama_cpp:
-    image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: llama_cpp
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     command:
       - --host
       - 0.0.0.0
@@ -50,6 +79,7 @@ services:
     environment:
       - XDG_CACHE_HOME=/models
       - HF_HOME=/models
+      - LLAMA_ARG_N_GPU_LAYERS=${LLAMA_N_GPU_LAYERS:-35}
     networks:
       - agent_network
     healthcheck:
@@ -59,6 +89,7 @@ services:
       retries: 30
 
   livekit_agent:
+    container_name: livekit_agent
     build:
       context: ./livekit_agent
     env_file:
@@ -71,6 +102,13 @@ services:
       - LIVEKIT_AGENT_PORT=${LIVEKIT_AGENT_PORT:-7880}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-no-key-needed}
       - GROQ_API_KEY=${GROQ_API_KEY:-no-key-needed}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     depends_on:
       livekit:
         condition: service_started
@@ -90,24 +128,60 @@ services:
       - agent_network
 
   frontend:
+    container_name: frontend
     build:
       context: ./frontend
+      dockerfile: Dockerfile 
+      cache_from:
+        - type=local,src=/var/lib/docker-build-cache/frontend
+      cache_to:
+        - type=local,dest=/var/lib/docker-build-cache/frontend,mode=max,compression=uncompressed
+      args:
+        NEXT_PUBLIC_LIVEKIT_URL: ${NEXT_PUBLIC_LIVEKIT_URL:-ws://localhost:7880}
+    env_file:
+      - .env
     ports:
       - "${LIVEKIT_AGENT_HOST_PORT:-3000}:3000"
     environment:
       - NEXT_PUBLIC_LIVEKIT_URL=${NEXT_PUBLIC_LIVEKIT_URL:-ws://localhost:7880}
-      - LIVEKIT_URL=ws://livekit:7880
-      - LIVEKIT_API_KEY=devkey
-      - LIVEKIT_API_SECRET=secret
+      - LIVEKIT_URL=${LIVEKIT_URL:-ws://livekit:7880}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-secret}
     depends_on:
       livekit:
         condition: service_started
     networks:
       - agent_network
+  qdrant:
+    image: qdrant/qdrant:gpu-nvidia-latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    environment:
+      - QDRANT__GPU__INDEXING=1
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/6333 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - agent_network
 
 volumes:
   whisper-data:
+  qdrant_data:
 
 networks:
   agent_network:
+    name: agent_network
     driver: bridge

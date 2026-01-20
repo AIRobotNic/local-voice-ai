@@ -1,4 +1,5 @@
 # syntax=docker/dockerfile:1
+# Вышеуказанная строка обязательна для работы кеширования!
 
 # Use the official UV Python base image with Python 3.13 on Debian Bookworm
 # UV is a fast Python package manager that provides better performance than pip

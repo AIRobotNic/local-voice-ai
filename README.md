@@ -19,6 +19,11 @@ This repo contains everything needed to run a real-time AI voice assistant local
 
 ## Getting Started
 
+```
+export HOST_FQDN=$(hostname -f)
+
+```
+
 Windows uses the PowerShell command; Linux and OSX use the bash command. Both will prompt you to choose CPU or Nvidia GPU.
 
 Windows:

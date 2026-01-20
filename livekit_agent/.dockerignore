@@ -38,6 +38,13 @@ coverage/
 .DS_Store
 
 # Project docs and misc
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+README.md
+tests/
+docs/
+src/livekit_agent.egg-info/
 README.md
 LICENSE
 

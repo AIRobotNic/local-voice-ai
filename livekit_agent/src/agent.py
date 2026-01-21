@@ -15,6 +15,8 @@ from livekit.agents import (
 )
 from livekit.plugins import silero, openai
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
+from qdrant_client import QdrantClient
+from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 # import openlit
 # openlit.init()
@@ -30,6 +32,13 @@ class Assistant(Agent):
             You eagerly assist users with their questions by providing information from your extensive knowledge.
             Your responses are concise, to the point, and without any complex formatting or punctuation including emojis, asterisks, or other symbols.
             You are curious, friendly, and have a sense of humor.""",
+        )
+        
+        # Initialize Qdrant client
+        self.qdrant_client = QdrantClient(
+            host=os.getenv("QDRANT_HOST", "localhost"),
+            port=int(os.getenv("QDRANT_PORT", 6333)),
+            prefer_grpc=False
         )
 
     @function_tool()
@@ -47,6 +56,65 @@ class Assistant(Agent):
         """
 
         return f"The product of {number1} and {number2} is {number1 * number2}."
+
+    @function_tool()
+    async def store_memory(
+        self,
+        context: RunContext,
+        key: str,
+        value: str,
+    ) -> dict[str, Any]:
+        """Store information in memory using Qdrant.
+        
+        Args:
+            key: The key to store the information under.
+            value: The information to store.
+        """
+        try:
+            # Store in Qdrant
+            self.qdrant_client.upsert(
+                collection_name="agent_memory",
+                points=[
+                    {
+                        "id": hash(key),
+                        "vector": [float(x) for x in key.encode('utf-8')[:10]],  # Simple vectorization
+                        "payload": {
+                            "key": key,
+                            "value": value,
+                            "timestamp": context.session.start_time.isoformat()
+                        }
+                    }
+                ]
+            )
+            return f"Stored information under key '{key}'"
+        except Exception as e:
+            return f"Failed to store information: {str(e)}"
+
+    @function_tool()
+    async def retrieve_memory(
+        self,
+        context: RunContext,
+        key: str,
+    ) -> dict[str, Any]:
+        """Retrieve information from memory using Qdrant.
+        
+        Args:
+            key: The key to retrieve information for.
+        """
+        try:
+            # Search in Qdrant
+            results = self.qdrant_client.search(
+                collection_name="agent_memory",
+                query_vector=[float(x) for x in key.encode('utf-8')[:10]],  # Simple vectorization
+                limit=1
+            )
+            
+            if results:
+                return results[0].payload.get("value", "No value found")
+            else:
+                return "No information found for that key"
+        except Exception as e:
+            return f"Failed to retrieve information: {str(e)}"
 
 server = AgentServer()
 
